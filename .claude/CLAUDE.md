@@ -1,7 +1,13 @@
 # VectorCore SMSC: project context for Claude
 
 > Generated from a review of `majiddarvishan/vectorcore-smsc` (fork of `svinson1121` / VectorCore Mobile upstream), version `0.4.0b`.
-> Deep review with all findings: `.claude/REVIEW.fa.md` (Persian). Overview: `.claude/FINDINGS.fa.md`.
+> Deep review with all findings: `.claude/REVIEW.fa.md` (Persian). Overview: `.claude/FINDINGS.fa.md`. Test plan checklist: `.claude/TEST_PLAN.md`.
+
+## Task tracking (MUST follow)
+- `.claude/TEST_PLAN.md` is the source of truth for test work. Each task is a GitHub checkbox.
+- When a task is completed, change its `- [ ]` to `- [x]` in the same commit, and update the progress table at the bottom.
+- Each test has two stages: the test itself, and a nested `فیکس` (fix) checkbox. Tick the fix box only when the bug is fixed and the `KnownBug` guard is removed.
+- Do not implement fixes or tests unless explicitly asked. Currently the plan is approved as planning only.
 
 ## What this is
 A multi-interface **SMSC / IP-SM-GW** written in Go (1.25). It accepts SMS from SMPP, SIP/3GPP ISC (IMS), SIP SIMPLE and Diameter SGd (SMS-in-MME), routes them, and delivers with store-and-forward, retries, expiry and delivery reports. Ships a REST API (Huma/chi, OpenAPI), Prometheus metrics and an embedded React UI (`web/`, built with Vite).
@@ -10,6 +16,7 @@ A multi-interface **SMSC / IP-SM-GW** written in Go (1.25). It accepts SMS from 
 - `make` = `make ui` (npm build into `web/dist`) + `make build` (`go build -ldflags "-X main.version=..." -o bin/smsc ./cmd/smsc`)
 - Run: `bin/smsc -c config/smsc.yaml` (default `-c` is `config.yaml`, which does NOT exist in repo). `-d` debug, `-v` version.
 - Test: `make test` / `go test ./...` (fuzz tests exist in codec packages). Prefer `go test -race ./...`.
+- Planned: `make test-race`, `make test-integration` (build tag `integration`, Postgres via `SMSC_TEST_PG_DSN`), known-bug tests gated by `SMSC_RUN_KNOWN_BUGS=1`.
 - UI dev: `make dev-ui` (Vite proxies `/api`, `/metrics`, `/health` to :8080).
 - Go module path is still `github.com/svinson1121/vectorcore-smsc`; keep imports consistent with it.
 
@@ -40,6 +47,7 @@ In code, SGd names are INVERTED vs 3GPP TS 29.338: `SendOFR`/`EncodeOFR`/`buildO
 - Logging: `log/slog`. Config: YAML (`internal/config`). DB change events via `store.Subscribe(table)` drive hot reload.
 - Add a new egress: implement sender, add case in `deliverSelectedRoute`, error classification in `classifyRouteError`, and allow it in `fallbackDecisions` + API validation.
 - Any change to message status MUST be conditional on the expected current status (see REVIEW ARCH-1).
+- Tests: deterministic (hooks/channels, injected clock), no random sleeps; store tests run on both backends.
 
 ## Top known issues (see REVIEW.fa.md)
 - No auth on REST API, Diameter ingress (CER always accepted) or SIP REGISTER/NOTIFY.
