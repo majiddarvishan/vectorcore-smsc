@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vectorcore-smsc: داشبورد ریسک و تست</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            --slate-950: hsl(222, 84%, 5%);
+            --slate-900: hsl(222, 84%, 10%);
+            --slate-800: hsl(222, 84%, 15%);
+            --slate-700: hsl(222, 84%, 25%);
+            --slate-600: hsl(222, 84%, 35%);
+            --slate-500: hsl(222, 84%, 45%);
+            --slate-400: hsl(222, 84%, 60%);
+            --slate-300: hsl(222, 84%, 70%);
+            --slate-200: hsl(222, 84%, 80%);
+            --slate-100: hsl(222, 84%, 90%);
+            --red-600: hsl(0, 84%, 50%);
+            --orange-500: hsl(30, 84%, 50%);
+            --amber-400: hsl(44, 84%, 50%);
+            --cyan-500: hsl(185, 84%, 50%);
+            --blue-500: hsl(217, 84%, 50%);
+            --violet-500: hsl(263, 84%, 50%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--slate-950);
+            color: var(--slate-200);
+            padding: 32px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 48px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--slate-100);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--slate-400);
+            margin-bottom: 6px;
+        }
+
+        .meta {
+            font-size: 0.875rem;
+            color: var(--slate-500);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--slate-700);
+            border-radius: 8px;
+            padding: 20px;
+            transition: border-color 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--blue-500);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--slate-400);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--slate-100);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .stat-subtext {
+            font-size: 0.875rem;
+            color: var(--slate-500);
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--slate-800);
+            border-radius: 2px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--cyan-500);
+            transition: width 0.5s ease;
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--slate-100);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 24px;
+            background: var(--blue-500);
+            border-radius: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--slate-700);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--slate-100);
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            display: block;
+            max-height: 320px;
+        }
+
+        .top-10-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .risk-item {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--slate-700);
+            border-left: 3px solid;
+            border-radius: 8px;
+            padding: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .risk-item:hover {
+            border-color: currentColor;
+        }
+
+        .risk-item.critical {
+            border-left-color: var(--red-600);
+        }
+
+        .risk-item.high {
+            border-left-color: var(--orange-500);
+        }
+
+        .risk-item.medium {
+            border-left-color: var(--amber-400);
+        }
+
+        .risk-item.low {
+            border-left-color: var(--cyan-500);
+        }
+
+        .risk-title {
+            font-weight: 600;
+            color: var(--slate-100);
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .risk-desc {
+            font-size: 0.875rem;
+            color: var(--slate-400);
+            line-height: 1.5;
+        }
+
+        .phase-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .phase-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--slate-700);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+        }
+
+        .phase-name {
+            font-weight: 600;
+            color: var(--slate-100);
+            font-size: 0.95rem;
+        }
+
+        .phase-count {
+            font-size: 0.875rem;
+            color: var(--slate-400);
+        }
+
+        .phase-bar {
+            height: 6px;
+            background: var(--slate-800);
+            border-radius: 3px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .phase-fill {
+            height: 100%;
+            background: var(--cyan-500);
+            transition: width 0.5s ease;
+        }
+
+        .phase-desc {
+            font-size: 0.8rem;
+            color: var(--slate-500);
+            line-height: 1.4;
+        }
+
+        .info-box {
+            background: rgba(96, 165, 250, 0.1);
+            border-left: 3px solid var(--blue-500);
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            color: var(--slate-300);
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: var(--slate-100);
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--slate-700);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .summary-card-title {
+            font-weight: 600;
+            color: var(--slate-100);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--slate-800);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--slate-500);
+        }
+
+        .summary-value {
+            font-weight: 600;
+            color: var(--slate-200);
+        }
+
+        footer {
+            text-align: center;
+            padding-top: 32px;
+            border-top: 1px solid var(--slate-800);
+            color: var(--slate-500);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--blue-500);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .link-separator {
+            margin: 0 6px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 1.75rem;
+            }
+
+            .section-title {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 vectorcore-smsc: Risk & Test Dashboard</h1>
+            <p class="subtitle">Severity, category, and test coverage analysis</p>
+            <p class="meta">Version 0.4.0b | Static analysis (no race detector execution)</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Issues</div>
+                <div class="stat-value">64</div>
+                <div class="stat-subtext">30 bugs + 34 other findings</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 100%; background: var(--red-600);"></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Test Coverage</div>
+                <div class="stat-value">0%</div>
+                <div class="stat-subtext">0 of 97 test tasks completed</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Project Status</div>
+                <div class="stat-value" style="color: var(--orange-500);">⚠️</div>
+                <div class="stat-subtext">Critical strengths needed</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Test Phases</div>
+                <div class="stat-value">9</div>
+                <div class="stat-subtext">0 completed</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🔴 Top 10 Priorities</h2>
+            <div class="top-10-list">
+                <div class="risk-item critical">
+                    <div class="risk-title">1. REST API Authentication</div>
+                    <div class="risk-desc">No auth on management API. Start with loopback, implement BasicAuth or tokens.</div>
+                </div>
+                <div class="risk-item critical">
+                    <div class="risk-title">2. Diameter Allow-list</div>
+                    <div class="risk-desc">No validation of Origin-Host. Require explicit peer configuration and origin verification.</div>
+                </div>
+                <div class="risk-item critical">
+                    <div class="risk-title">3. SIP Allow-list</div>
+                    <div class="risk-desc">REGISTER/NOTIFY without auth. Cache poisoning and message hijacking possible.</div>
+                </div>
+                <div class="risk-item critical">
+                    <div class="risk-title">4. Safe State Transitions</div>
+                    <div class="risk-desc">UpdateMessageStatus is unconditional. Fix BUG-1..4: implement compare-and-set semantics.</div>
+                </div>
+                <div class="risk-item critical">
+                    <div class="risk-title">5. Persist Error Handling</div>
+                    <div class="risk-desc">Failed persist is logged but ignored. Send fails silently without DB records.</div>
+                </div>
+                <div class="risk-item critical">
+                    <div class="risk-title">6. SQLite Time Comparison</div>
+                    <div class="risk-desc">RFC3339 Z vs SQLite datetime (TEXT comparison). Today's retry/expiry messages skip (BUG-5).</div>
+                </div>
+                <div class="risk-item high">
+                    <div class="risk-title">7. SMPP Input Validation</div>
+                    <div class="risk-desc">submit_sm gets ESME_ROK before decode. Invalid messages accepted silently (BUG-9).</div>
+                </div>
+                <div class="risk-item high">
+                    <div class="risk-title">8. Diameter Frame Safety</div>
+                    <div class="risk-desc">DWR/DWA/CEA write directly. Concurrent writes interleave bytes and corrupt framing (BUG-12).</div>
+                </div>
+                <div class="risk-item high">
+                    <div class="risk-title">9. SMPP Connection Timeout</div>
+                    <div class="risk-desc">No read deadline for bind. command_length up to 16MB unauthed. Slowloris + memory DoS (SEC-5).</div>
+                </div>
+                <div class="risk-item high">
+                    <div class="risk-title">10. Retention & API Limits</div>
+                    <div class="risk-desc">No purge of final messages. limit parameter has no cap. Database growth and query DoS.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📊 Findings by Category</h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Severity Distribution</div>
+                    <canvas id="severityChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Issue Type Breakdown</div>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Test Phase Coverage</div>
+                    <canvas id="phaseChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Problem Domain Impact</div>
+                    <canvas id="domainChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🧪 Test Plan Overview</h2>
+            <div class="info-box">
+                💡 97 test tasks organized into 9 phases. Recommended order: Infrastructure → Race → Store → Forwarder → SMPP → Diameter → SIP → API → Lifecycle.
+            </div>
+
+            <div class="phase-container" id="phases">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <div class="info-box" style="margin-top: 32px;">
+                📌 All 97 tests marked as [ ] (pending). No implementation yet. Details in <a href="https://github.com/majiddarvishan/vectorcore-smsc/blob/main/.claude/TEST_PLAN.md" style="color: inherit; text-decoration: underline;">TEST_PLAN.md</a>.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🎯 Core Weaknesses</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-card-title">Message State Machine</div>
+                    <div class="summary-row">
+                        <span class="summary-label">Issue:</span>
+                        <span class="summary-value">Unconditional updates</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Impact:</span>
+                        <span class="summary-value">Lost + duplicated msgs</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Fix:</span>
+                        <span class="summary-value">Compare-and-set + CAS</span>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-title">Trust Boundary</div>
+                    <div class="summary-row">
+                        <span class="summary-label">Issue:</span>
+                        <span class="summary-value">No authentication</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Impact:</span>
+                        <span class="summary-value">Hijacking, spoofing</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Fix:</span>
+                        <span class="summary-value">Allow-list + TLS</span>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-title">Ingress Path</div>
+                    <div class="summary-row">
+                        <span class="summary-label">Issue:</span>
+                        <span class="summary-value">Sync HSS queries</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Impact:</span>
+                        <span class="summary-value">System-wide slowdown</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Fix:</span>
+                        <span class="summary-value">Cache + async worker</span>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-title">Multi-Instance Readiness</div>
+                    <div class="summary-row">
+                        <span class="summary-label">Issue:</span>
+                        <span class="summary-value">Not HA-ready</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Impact:</span>
+                        <span class="summary-value">HA impossible</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Fix:</span>
+                        <span class="summary-value">Lease + outbox</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            📝 <a href="https://github.com/majiddarvishan/vectorcore-smsc">GitHub Repository</a>
+            <span class="link-separator">•</span>
+            <a href="https://github.com/majiddarvishan/vectorcore-smsc/blob/main/.claude/REVIEW.fa.md">Full Review (Farsi)</a>
+            <span class="link-separator">•</span>
+            <a href="https://github.com/majiddarvishan/vectorcore-smsc/blob/main/.claude/FINDINGS.fa.md">Key Findings</a>
+            <span class="link-separator">•</span>
+            <a href="https://github.com/majiddarvishan/vectorcore-smsc/blob/main/.claude/TEST_PLAN.md">Test Plan</a>
+        </footer>
+    </div>
+
+    <script>
+        // Data
+        const phaseData = [
+            { name: 'Infrastructure', id: 0, tasks: 9, color: 'hsl(217, 84%, 50%)' },
+            { name: 'Race Conditions', id: 1, tasks: 13, color: 'hsl(263, 84%, 50%)' },
+            { name: 'Store (DB)', id: 2, tasks: 10, color: 'hsl(185, 84%, 50%)' },
+            { name: 'Forwarder', id: 3, tasks: 14, color: 'hsl(100, 84%, 50%)' },
+            { name: 'SMPP Protocol', id: 4, tasks: 12, color: 'hsl(44, 84%, 50%)' },
+            { name: 'Diameter', id: 5, tasks: 9, color: 'hsl(0, 84%, 50%)' },
+            { name: 'SIP', id: 6, tasks: 9, color: 'hsl(320, 84%, 50%)' },
+            { name: 'REST API', id: 7, tasks: 8, color: 'hsl(162, 84%, 50%)' },
+            { name: 'Lifecycle', id: 8, tasks: 4, color: 'hsl(263, 84%, 50%)' }
+        ];
+
+        const phaseDescriptions = [
+            'Setup make targets, docker-compose, testutil, fake senders, and goleak verification',
+            'Race between expiry/retry, concurrent Diameter maps, SMPP sequence wrap, and state claims',
+            'SQLite date comparison, schema round-trip, migration safety, LISTEN/NOTIFY recovery',
+            'Persist failures, status update atomicity, policy application, chaos scenarios',
+            'Bind FSM, submit validation, timeout handling, throughput limiting, message ID uniqueness',
+            'CER authentication, End-to-End ID uniqueness, MME routing, graceful stop',
+            'REGISTER/NOTIFY auth, MESSAGE parsing, ISC end-to-end, IMDN escaping',
+            'API authentication, rate limiting, CRUD round-trip, input validation, health checks',
+            'Graceful shutdown, goroutine leaks, Makefile build, config validation'
+        ];
+
+        // Render phases
+        const phasesContainer = document.getElementById('phases');
+        phaseData.forEach((phase, idx) => {
+            const card = document.createElement('div');
+            card.className = 'phase-card';
+            card.innerHTML = `
+                <div class="phase-header">
+                    <div class="phase-name">${phase.name}</div>
+                    <div class="phase-count">0/${phase.tasks}</div>
+                </div>
+                <div class="phase-bar">
+                    <div class="phase-fill" style="width: 0%; background: ${phase.color};"></div>
+                </div>
+                <div class="phase-desc">${phaseDescriptions[idx]}</div>
+            `;
+            phasesContainer.appendChild(card);
+        });
+
+        // Chart 1: Severity
+        new Chart(document.getElementById('severityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [4, 13, 8, 5],
+                    backgroundColor: [
+                        'hsl(0, 84%, 50%)',
+                        'hsl(30, 84%, 50%)',
+                        'hsl(44, 84%, 50%)',
+                        'hsl(185, 84%, 50%)'
+                    ],
+                    borderColor: 'hsl(222, 84%, 5%)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: { color: 'hsl(222, 84%, 90%)' }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Categories
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Bugs', 'Performance', 'Security', 'Architecture', 'Clean Code'],
+                datasets: [{
+                    label: 'Count',
+                    data: [30, 11, 8, 8, 7],
+                    backgroundColor: [
+                        'hsl(0, 84%, 50%)',
+                        'hsl(30, 84%, 50%)',
+                        'hsl(0, 0%, 50%)',
+                        'hsl(217, 84%, 50%)',
+                        'hsl(263, 84%, 50%)'
+                    ],
+                    borderColor: 'hsl(222, 84%, 30%)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: 'hsl(222, 84%, 90%)' } }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: 'hsl(222, 84%, 70%)' },
+                        grid: { color: 'hsl(222, 84%, 20%)' }
+                    },
+                    y: {
+                        ticks: { color: 'hsl(222, 84%, 70%)' },
+                        grid: { color: 'hsl(222, 84%, 20%)' }
+                    }
+                }
+            }
+        });
+
+        // Chart 3: Test phases
+        new Chart(document.getElementById('phaseChart'), {
+            type: 'bar',
+            data: {
+                labels: phaseData.map(p => p.name),
+                datasets: [
+                    {
+                        label: 'Completed',
+                        data: phaseData.map(() => 0),
+                        backgroundColor: 'hsl(100, 84%, 50%)'
+                    },
+                    {
+                        label: 'Pending',
+                        data: phaseData.map(p => p.tasks),
+                        backgroundColor: 'hsl(222, 84%, 25%)'
+                    }
+                ]
+            },
+            options: {
+                stacked: true,
+                responsive: true,
+                plugins: { legend: { labels: { color: 'hsl(222, 84%, 90%)' } } },
+                scales: {
+                    x: {
+                        ticks: { color: 'hsl(222, 84%, 70%)', maxRotation: 45, minRotation: 0 },
+                        grid: { color: 'hsl(222, 84%, 20%)' }
+                    },
+                    y: {
+                        ticks: { color: 'hsl(222, 84%, 70%)' },
+                        grid: { color: 'hsl(222, 84%, 20%)' }
+                    }
+                }
+            }
+        });
+
+        // Chart 4: Domain
+        new Chart(document.getElementById('domainChart'), {
+            type: 'radar',
+            data: {
+                labels: ['State Machine', 'Trust Boundary', 'Ingress Path', 'Multi-Instance', 'Concurrency'],
+                datasets: [{
+                    label: 'Risk Count',
+                    data: [4, 4, 3, 2, 5],
+                    borderColor: 'hsl(217, 84%, 50%)',
+                    backgroundColor: 'rgba(96, 165, 250, 0.15)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'hsl(217, 84%, 50%)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: 'hsl(222, 84%, 90%)' } } },
+                scales: {
+                    r: {
+                        ticks: { color: 'hsl(222, 84%, 70%)' },
+                        grid: { color: 'hsl(222, 84%, 20%)' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
